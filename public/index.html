@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Side Routes — Bookings Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #FAF7F2;
+  --card: #FFFFFF;
+  --card-hover: #FBF8F2;
+  --border: #E7E0D5;
+  --border-soft: #F0EBE0;
+  --border-strong: #D6CDBE;
+  --text: #1C1917;
+  --text-muted: #57534E;
+  --text-faint: #A8A29E;
+  --accent-primary: #B45309;
+  --accent-primary-soft: #FEF3E2;
+  --accent-secondary: #0F766E;
+  --barcelona: #B91C1C;
+  --barcelona-soft: #FEE2E2;
+  --london: #1E40AF;
+  --london-soft: #DBEAFE;
+  --positive: #15803D;
+  --live: #16A34A;
+  --shadow-xs: 0 1px 2px rgba(28, 25, 23, 0.04);
+  --shadow-sm: 0 1px 2px rgba(28, 25, 23, 0.04), 0 1px 3px rgba(28, 25, 23, 0.04);
+  --shadow: 0 2px 6px rgba(28, 25, 23, 0.05), 0 1px 2px rgba(28, 25, 23, 0.04);
+  --shadow-lg: 0 12px 32px rgba(28, 25, 23, 0.07), 0 2px 6px rgba(28, 25, 23, 0.04);
+  --radius: 14px;
+  --radius-sm: 10px;
+  --radius-pill: 999px;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11";
+}
+body { padding: 6px; }
+
+/* ---------- Brand header ---------- */
+.brand-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 10px 4px 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--border-soft);
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.brand-text { display: flex; flex-direction: column; gap: 2px; }
+.brand-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--accent-primary);
+  text-transform: uppercase;
+}
+.brand-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.15;
+}
+.brand-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(22, 163, 74, 0.08);
+  color: var(--live);
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--live);
+  box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.6);
+  animation: pulse 2.2s infinite;
+}
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45); }
+  70%  { box-shadow: 0 0 0 8px rgba(22, 163, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+}
+.status-detail {
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Filters ---------- */
+.filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 7px 14px;
+  box-shadow: var(--shadow-xs);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.filter:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+.filter label {
+  font-size: 10px;
+  color: var(--text-faint);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.filter select {
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+  padding-right: 2px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.filter select:focus { color: var(--accent-primary); }
+.reset-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.reset-btn:hover {
+  background: var(--card);
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+.loaded-count {
+  margin-left: auto;
+  align-self: center;
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Daily Snapshot ---------- */
+.snapshot-card {
+  background: linear-gradient(135deg, #FFFFFF 0%, #FBF8F2 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 22px 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-xs);
+  position: relative;
+  overflow: hidden;
+}
+.snapshot-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--accent-primary), var(--barcelona));
+}
+.snapshot-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.snapshot-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.snapshot-title::before {
+  content: "";
+  width: 3px;
+  height: 11px;
+  background: var(--accent-primary);
+  border-radius: 2px;
+}
+.snapshot-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.snapshot-period {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.snapshot-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.snap-stat .num {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.snap-stat .lbl {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-top: 2px;
+  font-weight: 500;
+}
+.snapshot-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
+}
+.snapshot-meta .meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.snapshot-meta .meta-label {
+  color: var(--text-faint);
+  font-weight: 500;
+}
+.snapshot-meta strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.trend-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.trend-pill.up   { background: rgba(21, 128, 61, 0.10); color: var(--positive); }
+.trend-pill.down { background: var(--barcelona-soft); color: var(--barcelona); }
+.trend-pill.flat { background: #F0EBE0; color: var(--text-muted); }
+.empty-snap {
+  font-size: 13px;
+  color: var(--text-faint);
+  padding: 8px 0;
+}
+
+/* ---------- AI Brief ---------- */
+.brief-card {
+  position: relative;
+  background: linear-gradient(135deg, #FEF3E2 0%, #FFFFFF 60%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 22px 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+}
+.brief-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+}
+.brief-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.brief-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brief-badge {
+  background: linear-gradient(135deg, var(--accent-primary), #D97706);
+  color: white;
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  box-shadow: 0 1px 2px rgba(180, 83, 9, 0.3);
+}
+.brief-body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  letter-spacing: -0.005em;
+}
+.brief-body p { margin: 0; }
+.brief-loading {
+  color: var(--text-faint);
+  font-size: 13px;
+  font-style: italic;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.brief-loading::before {
+  content: "";
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  animation: think 1.2s infinite;
+}
+@keyframes think {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50%      { opacity: 1;   transform: scale(1.2); }
+}
+.brief-meta {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
+  font-size: 11px;
+  color: var(--text-faint);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ---------- Segmented control (chart granularity) ---------- */
+.segmented {
+  display: inline-flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 2px;
+  gap: 2px;
+}
+.segmented button {
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+.segmented button:hover { color: var(--text); }
+.segmented button.active {
+  background: var(--card);
+  color: var(--accent-primary);
+  box-shadow: var(--shadow-xs);
+}
+.chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chart-head h3 { margin: 0; }
+
+/* ---------- KPIs ---------- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.kpi {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px 16px;
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.kpi:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+.kpi::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--accent-primary);
+}
+.kpi[data-kind="bookings"]::before { background: var(--london); }
+.kpi[data-kind="revenue"]::before  { background: var(--accent-primary); }
+.kpi[data-kind="pax"]::before      { background: var(--accent-secondary); }
+.kpi[data-kind="aov"]::before      { background: var(--barcelona); }
+.kpi .label {
+  font-size: 10px;
+  color: var(--text-faint);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  margin-bottom: 8px;
+}
+.kpi .value {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  line-height: 1.1;
+}
+.kpi .sub {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Charts ---------- */
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+@media (max-width: 760px) {
+  .chart-grid { grid-template-columns: 1fr; }
+}
+.chart-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px 14px;
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow 0.2s;
+}
+.chart-card:hover { box-shadow: var(--shadow-sm); }
+.chart-card h3 {
+  margin: 0 0 14px 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.chart-card h3::before {
+  content: "";
+  width: 3px;
+  height: 11px;
+  background: var(--accent-primary);
+  border-radius: 2px;
+}
+.chart-card[data-accent="london"] h3::before { background: var(--london); }
+.chart-card[data-accent="barcelona"] h3::before { background: var(--barcelona); }
+.chart-card[data-accent="teal"] h3::before { background: var(--accent-secondary); }
+.chart-wrap {
+  position: relative;
+  height: 230px;
+}
+
+/* ---------- Table ---------- */
+.table-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px 8px;
+  box-shadow: var(--shadow-xs);
+  margin-bottom: 14px;
+}
+.table-card h3 {
+  margin: 0 0 12px 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.table-card h3::before {
+  content: "";
+  width: 3px;
+  height: 11px;
+  background: var(--accent-secondary);
+  border-radius: 2px;
+}
+.table-wrap { overflow-x: auto; margin: 0 -4px; }
+.bookings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.bookings-table th, .bookings-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-soft);
+  white-space: nowrap;
+}
+.bookings-table th {
+  color: var(--text-faint);
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: transparent;
+}
+.bookings-table tbody tr { transition: background 0.15s; }
+.bookings-table tr:last-child td { border-bottom: none; }
+.bookings-table tr:hover td { background: var(--card-hover); }
+.bookings-table .num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; color: var(--text); }
+.tour-cell { max-width: 320px; white-space: normal; color: var(--text); }
+
+/* ---------- Badges ---------- */
+.badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+.badge.barcelona { background: var(--barcelona-soft); color: var(--barcelona); }
+.badge.london    { background: var(--london-soft);    color: var(--london); }
+.badge.other     { background: #F0EBE0;               color: var(--text-muted); }
+
+/* ---------- States ---------- */
+.empty-state {
+  text-align: center;
+  color: var(--text-faint);
+  padding: 36px 20px;
+  font-size: 13px;
+}
+.loading {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.error {
+  background: var(--barcelona-soft);
+  border: 1px solid #FCA5A5;
+  color: #991B1B;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  margin-bottom: 16px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.footnote {
+  font-size: 11px;
+  color: var(--text-faint);
+  text-align: center;
+  margin-top: 12px;
+  padding: 12px 6px 4px;
+  line-height: 1.6;
+  border-top: 1px solid var(--border-soft);
+}
+.footnote em { color: var(--text-muted); font-style: normal; font-weight: 500; }
+</style>
+</head>
+<body>
+<div id="root">
+  <div class="loading">Fetching bookings from your sheet...</div>
+</div>
+
+<script>
+"use strict";
+
+// ------- CONFIG -------
+const SHEET_FILE_ID = "12ewHhRFOS6PSZpjk0cg8dzLj05KujL0Ei2udGu8He04";
+// Approximate FX rates to EUR (May 2026). See footnote.
+const FX_TO_EUR = { EUR: 1.00, USD: 0.92, GBP: 1.17, CAD: 0.68 };
+// Warm/sophisticated palette — keyed loosely to channel personality
+const PALETTE = ["#B45309", "#0F766E", "#1E40AF", "#B91C1C", "#15803D", "#7E22CE", "#CA8A04", "#0891B2", "#57534E"];
+const CHART_THEME = {
+  text:    "#1C1917",
+  muted:   "#57534E",
+  faint:   "#A8A29E",
+  grid:    "#F0EBE0",
+  tooltip: "#1C1917"
+};
+
+// ------- FILTER PERSISTENCE -------
+function getFilter(key, dflt) {
+  try { return localStorage.getItem("sr-dash-" + key) || dflt; } catch (e) { return dflt; }
+}
+function setFilter(key, val) {
+  try { localStorage.setItem("sr-dash-" + key, val); } catch (e) {}
+}
+
+// ------- PARSING -------
+function parseMarkdownTable(md) {
+  if (!md) return [];
+  const lines = md.split("\n").map(l => l.trim()).filter(l => l.startsWith("|"));
+  if (lines.length < 2) return [];
+  const headers = splitMdRow(lines[0]);
+  const dataLines = lines.slice(2); // skip header + separator
+  return dataLines.map(line => {
+    const cells = splitMdRow(line);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (cells[i] || "").trim(); });
+    return obj;
+  });
+}
+function splitMdRow(row) {
+  const parts = row.split("|").map(c => c.trim());
+  // first and last are empty due to leading/trailing pipes
+  return parts.slice(1, parts.length - 1);
+}
+function parseBookedAt(str) {
+  if (!str) return null;
+  const m = str.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  const [, y, mo, d, h, mi] = m;
+  return new Date(parseInt(y), parseInt(mo) - 1, parseInt(d), parseInt(h), parseInt(mi));
+}
+function getCity(tour) {
+  const t = (tour || "").toLowerCase();
+  if (/barcelona|gaud|tapas/.test(t)) return "Barcelona";
+  if (/london|jack the ripper|whitechapel|pub/.test(t)) return "London";
+  return "Other";
+}
+function normalizeChannel(ch) {
+  const lower = (ch || "").toLowerCase();
+  if (lower.includes("tiqets")) return "Tiqets";
+  if (lower.includes("klook")) return "Klook";
+  if (lower.includes("getyourguide")) return "GetYourGuide";
+  if (lower.includes("viator")) return "Viator";
+  if (lower.includes("airbnb")) return "Airbnb";
+  if (lower.includes("jack the ripper website") || lower.includes("side routes")) return "Direct";
+  return ch || "Other";
+}
+function toEur(amount, currency) {
+  const rate = FX_TO_EUR[currency];
+  if (rate === undefined) return parseFloat(amount || 0); // unknown ccy: treat as EUR
+  return parseFloat(amount || 0) * rate;
+}
+
+// ------- FORMATTERS -------
+function fmtEur(n) {
+  if (!isFinite(n)) return "€0";
+  return "€" + Math.round(n).toLocaleString("en-US");
+}
+function fmtNum(n) { return (n || 0).toLocaleString("en-US"); }
+function shortTour(t, max) {
+  if (!t) return "";
+  if (t.length <= max) return t;
+  return t.substring(0, max - 1).trim() + "…";
+}
+function fmtDate(d) {
+  if (!d) return "";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+function fmtTimeAgo(d) {
+  if (!d) return "—";
+  const ms = Date.now() - d.getTime();
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return m + "m ago";
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + "h ago";
+  const days = Math.floor(h / 24);
+  return days + "d ago";
+}
+
+// ------- DATA LOAD -------
+// Defensive extractor: handles multiple possible MCP response shapes.
+function extractMarkdown(result) {
+  if (result == null) return "";
+  if (typeof result === "string") return result;
+  // Direct shape: { fileContent: "..." }
+  if (typeof result.fileContent === "string") return result.fileContent;
+  // MCP-standard: { content: [{ type: "text", text: "..." }] }
+  if (Array.isArray(result.content)) {
+    const block = result.content.find(b => b && b.type === "text" && typeof b.text === "string");
+    if (block) {
+      // The text might itself be JSON-stringified { fileContent: "..." }
+      try {
+        const parsed = JSON.parse(block.text);
+        if (parsed && typeof parsed.fileContent === "string") return parsed.fileContent;
+        if (parsed && Array.isArray(parsed.content)) return extractMarkdown(parsed);
+      } catch (e) { /* not JSON, treat as raw markdown */ }
+      return block.text;
+    }
+  }
+  // Wrapped further
+  if (result.result) return extractMarkdown(result.result);
+  if (result.data)   return extractMarkdown(result.data);
+  if (result.body)   return extractMarkdown(result.body);
+  return "";
+}
+
+async function loadData() {
+  // Production: fetch from our Cloudflare Pages function /api/bookings,
+  // which authenticates against Google Sheets server-side using a service account.
+  let res;
+  try {
+    res = await fetch("/api/bookings", { cache: "no-store" });
+  } catch (e) {
+    throw new Error("Network error reaching /api/bookings: " + (e && e.message ? e.message : String(e)));
+  }
+  let payload;
+  try { payload = await res.json(); }
+  catch (e) { throw new Error("API returned non-JSON (HTTP " + res.status + ")"); }
+  if (!res.ok || payload.error) {
+    throw new Error("API error: " + (payload.error || ("HTTP " + res.status)));
+  }
+  const headers = payload.headers || [];
+  const rows = payload.rows || [];
+  if (rows.length === 0) throw new Error("Sheet returned 0 rows. Check GOOGLE_SHEET_RANGE.");
+  return rows.map(row => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = row[i] != null ? String(row[i]) : ""; });
+    return {
+      bookingId: obj["Booking ID"] || "",
+      bookedAt: parseBookedAt(obj["Booked At"]),
+      departureDate: obj["Departure Date"] || "",
+      customer: obj["Customer"] || "",
+      email: obj["Email"] || "",
+      tour: obj["Tour"] || "",
+      pax: parseInt(obj["Pax"]) || 0,
+      total: parseFloat(obj["Total"]) || 0,
+      currency: obj["Currency"] || "EUR",
+      channel: obj["Channel"] || "",
+      status: obj["Status"] || "",
+      city: getCity(obj["Tour"]),
+      channelNorm: normalizeChannel(obj["Channel"]),
+      eur: toEur(obj["Total"], obj["Currency"])
+    };
+  });
+}
+
+// ------- FILTER -------
+function applyFilters(bookings, timeRange, city, channel) {
+  let out = bookings.slice();
+  if (timeRange !== "all") {
+    const days = timeRange === "7d" ? 7 : 30;
+    const cutoff = new Date(Date.now() - days * 86400000);
+    out = out.filter(b => b.bookedAt && b.bookedAt >= cutoff);
+  }
+  if (city !== "all") out = out.filter(b => b.city === city);
+  if (channel !== "all") out = out.filter(b => b.channelNorm === channel);
+  return out;
+}
+
+// ------- CHART HELPERS -------
+const charts = {};
+const baseChartOpts = (isCurrency) => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: CHART_THEME.tooltip,
+      padding: 10,
+      cornerRadius: 6,
+      titleFont: { size: 12, weight: 600 },
+      bodyFont: { size: 12 },
+      callbacks: {
+        label: function(ctx) {
+          const v = ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.parsed;
+          return isCurrency ? fmtEur(v) : fmtNum(v);
+        }
+      }
+    }
+  },
+  scales: {
+    x: { grid: { display: false }, ticks: { font: { size: 11 }, color: CHART_THEME.muted } },
+    y: {
+      grid: { color: CHART_THEME.grid },
+      border: { display: false },
+      ticks: {
+        font: { size: 11 },
+        color: CHART_THEME.faint,
+        callback: function(v) { return isCurrency ? fmtEur(v) : v; }
+      }
+    }
+  }
+});
+
+function destroyChart(key) {
+  if (charts[key]) { charts[key].destroy(); delete charts[key]; }
+}
+
+function renderRevByChannel(data) {
+  const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
+  const ctx = document.getElementById("chart-rev-channel");
+  destroyChart("revChannel");
+  charts.revChannel = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: sorted.map(e => e[0]),
+      datasets: [{
+        data: sorted.map(e => Math.round(e[1])),
+        backgroundColor: PALETTE.slice(0, sorted.length),
+        borderRadius: 6,
+        maxBarThickness: 36
+      }]
+    },
+    options: baseChartOpts(true)
+  });
+}
+
+function renderBookingsByTour(data) {
+  const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
+  const ctx = document.getElementById("chart-bookings-tour");
+  destroyChart("bookingsTour");
+  charts.bookingsTour = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: sorted.map(e => shortTour(e[0], 40)),
+      datasets: [{
+        data: sorted.map(e => e[1]),
+        backgroundColor: sorted.map((e) => {
+          const c = getCity(e[0]);
+          return c === "Barcelona" ? "#B91C1C" : (c === "London" ? "#1E40AF" : "#A8A29E");
+        }),
+        borderRadius: 6,
+        maxBarThickness: 24
+      }]
+    },
+    options: {
+      ...baseChartOpts(false),
+      indexAxis: "y",
+      scales: {
+        x: { grid: { color: CHART_THEME.grid }, border: { display: false }, ticks: { font: { size: 11 }, color: CHART_THEME.faint, precision: 0 } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 }, color: CHART_THEME.muted } }
+      }
+    }
+  });
+}
+
+function renderBookingsOverTime(data, granularity) {
+  granularity = granularity || "day";
+  const sorted = Object.entries(data).sort((a, b) => a[0].localeCompare(b[0]));
+  const ctx = document.getElementById("chart-time");
+  destroyChart("time");
+  charts.time = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: sorted.map(e => fmtPeriodLabel(e[0], granularity)),
+      datasets: [{
+        data: sorted.map(e => e[1]),
+        borderColor: "#B45309",
+        backgroundColor: "rgba(180,83,9,0.10)",
+        fill: true,
+        tension: 0.3,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        pointBackgroundColor: "#B45309",
+        pointBorderColor: "#FFFFFF",
+        pointBorderWidth: 2,
+        borderWidth: 2.5
+      }]
+    },
+    options: {
+      ...baseChartOpts(false),
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 }, color: CHART_THEME.muted } },
+        y: { grid: { color: CHART_THEME.grid }, border: { display: false }, beginAtZero: true, ticks: { font: { size: 11 }, color: CHART_THEME.faint, precision: 0 } }
+      }
+    }
+  });
+}
+
+function renderChannelMix(data) {
+  const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]);
+  const ctx = document.getElementById("chart-channel-mix");
+  destroyChart("channelMix");
+  charts.channelMix = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: sorted.map(e => e[0]),
+      datasets: [{
+        data: sorted.map(e => e[1]),
+        backgroundColor: PALETTE.slice(0, sorted.length),
+        borderWidth: 2,
+        borderColor: "#ffffff"
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: "65%",
+      plugins: {
+        legend: {
+          position: "right",
+          labels: { font: { size: 11 }, color: CHART_THEME.muted, boxWidth: 10, boxHeight: 10, padding: 8 }
+        },
+        tooltip: {
+          backgroundColor: CHART_THEME.tooltip,
+          padding: 10,
+          cornerRadius: 6,
+          callbacks: {
+            label: function(ctx) {
+              const total = ctx.dataset.data.reduce((s, v) => s + v, 0);
+              const pct = total > 0 ? Math.round((ctx.parsed / total) * 100) : 0;
+              return ctx.label + ": " + ctx.parsed + " (" + pct + "%)";
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderBookingsTable(rows) {
+  const recent = rows.slice().sort((a, b) => (b.bookedAt?.getTime() || 0) - (a.bookedAt?.getTime() || 0)).slice(0, 12);
+  const tbody = document.getElementById("bookings-tbody");
+  if (!recent.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No bookings match these filters.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = recent.map(b => {
+    const cityClass = b.city === "Barcelona" ? "barcelona" : (b.city === "London" ? "london" : "other");
+    return `<tr>
+      <td>${fmtDate(b.bookedAt)}</td>
+      <td><span class="badge ${cityClass}">${b.city}</span></td>
+      <td class="tour-cell">${escapeHtml(shortTour(b.tour, 60))}</td>
+      <td>${escapeHtml(b.customer)}</td>
+      <td>${escapeHtml(b.channelNorm)}</td>
+      <td class="num">${b.pax}</td>
+      <td class="num">${fmtEur(b.eur)}</td>
+    </tr>`;
+  }).join("");
+}
+
+function escapeHtml(s) {
+  return (s || "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+}
+
+// ------- DATE HELPERS -------
+function toDateKey(d) {
+  if (!d) return "";
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function startOfWeek(d) {
+  const dt = new Date(d);
+  const day = dt.getDay();
+  const diff = day === 0 ? 6 : day - 1; // Monday as start of week
+  dt.setDate(dt.getDate() - diff);
+  dt.setHours(0, 0, 0, 0);
+  return dt;
+}
+function shiftDate(dateStr, days) {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  return toDateKey(d);
+}
+function fmtSnapDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+function fmtPeriodLabel(key, granularity) {
+  if (granularity === "month") {
+    const [y, m] = key.split("-");
+    return new Date(parseInt(y), parseInt(m) - 1, 1).toLocaleDateString("en-GB", { month: "short", year: "2-digit" });
+  }
+  if (granularity === "week") {
+    const d = new Date(key + "T00:00:00");
+    const end = new Date(d); end.setDate(end.getDate() + 6);
+    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) + "–" + end.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  }
+  return new Date(key + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+}
+
+// ------- SNAPSHOT -------
+function bookingsOnDate(bookings, dateStr) {
+  return bookings.filter(b => b.bookedAt && toDateKey(b.bookedAt) === dateStr);
+}
+function bookingsInRange(bookings, startDate, endDateExclusive) {
+  return bookings.filter(b => b.bookedAt && b.bookedAt >= startDate && b.bookedAt < endDateExclusive);
+}
+function getMostRecentBookingDate(bookings) {
+  return bookings.reduce((max, b) => {
+    if (!b.bookedAt) return max;
+    if (!max || b.bookedAt > max) return b.bookedAt;
+    return max;
+  }, null);
+}
+function fmtWeekRange(weekStart) {
+  const end = new Date(weekStart); end.setDate(end.getDate() + 6);
+  return weekStart.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) +
+    " – " + end.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+function buildSnapshot(onPeriod, prevPeriod) {
+  const totalRev = onPeriod.reduce((s, b) => s + b.eur, 0);
+  const totalPax = onPeriod.reduce((s, b) => s + b.pax, 0);
+  const aov = onPeriod.length ? totalRev / onPeriod.length : 0;
+  const tourCounts = {};
+  onPeriod.forEach(b => { tourCounts[b.tour] = (tourCounts[b.tour] || 0) + 1; });
+  const topTour = Object.entries(tourCounts).sort((a, b) => b[1] - a[1])[0];
+  const channelRev = {};
+  onPeriod.forEach(b => { channelRev[b.channelNorm] = (channelRev[b.channelNorm] || 0) + b.eur; });
+  const topChannel = Object.entries(channelRev).sort((a, b) => b[1] - a[1])[0];
+  let trend = null;
+  if (prevPeriod.length > 0) trend = ((onPeriod.length - prevPeriod.length) / prevPeriod.length) * 100;
+  else if (onPeriod.length > 0) trend = Infinity;
+  return {
+    bookings: onPeriod.length, revenue: totalRev, pax: totalPax, aov,
+    topTour, topChannel, trend, prevCount: prevPeriod.length
+  };
+}
+function computeSnapshot(bookings, mode) {
+  const mostRecent = getMostRecentBookingDate(bookings);
+  if (mode === "week") {
+    const ref = mostRecent || new Date();
+    const weekStart = startOfWeek(ref);
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 7);
+    const prevStart = new Date(weekStart); prevStart.setDate(prevStart.getDate() - 7);
+    const onPeriod = bookingsInRange(bookings, weekStart, weekEnd);
+    const prevPeriod = bookingsInRange(bookings, prevStart, weekStart);
+    const prevWeekStart = new Date(prevStart);
+    return Object.assign(buildSnapshot(onPeriod, prevPeriod), {
+      periodLabel: fmtWeekRange(weekStart),
+      prevLabel: fmtWeekRange(prevWeekStart),
+      isEmpty: onPeriod.length === 0,
+      mode: "week"
+    });
+  }
+  // Day mode
+  const ref = mostRecent || new Date();
+  const dayKey = toDateKey(ref);
+  const prevKey = shiftDate(dayKey, -1);
+  const onPeriod = bookingsOnDate(bookings, dayKey);
+  const prevPeriod = bookingsOnDate(bookings, prevKey);
+  return Object.assign(buildSnapshot(onPeriod, prevPeriod), {
+    periodLabel: fmtSnapDate(dayKey),
+    prevLabel: fmtSnapDate(prevKey),
+    isEmpty: onPeriod.length === 0,
+    mode: "day"
+  });
+}
+function renderSnapshot(bookings, mode) {
+  const s = computeSnapshot(bookings, mode);
+  const elBookings = document.getElementById("snap-bookings");
+  if (!elBookings) return;
+  document.getElementById("snap-period").textContent = s.periodLabel;
+  elBookings.textContent = fmtNum(s.bookings);
+  document.getElementById("snap-revenue").textContent = fmtEur(s.revenue);
+  document.getElementById("snap-pax").textContent = fmtNum(s.pax);
+  document.getElementById("snap-aov").textContent = fmtEur(s.aov);
+  const elMeta = document.getElementById("snap-meta");
+  if (s.isEmpty) {
+    const noun = mode === "week" ? "this week" : "on this day";
+    elMeta.innerHTML = '<div class="empty-snap">No bookings recorded ' + noun + '.</div>';
+    return;
+  }
+  const parts = [];
+  if (s.topTour) {
+    parts.push('<span class="meta-item"><span class="meta-label">Top tour:</span> <strong>' + escapeHtml(shortTour(s.topTour[0], 50)) + '</strong> (' + s.topTour[1] + ')</span>');
+  }
+  if (s.topChannel) {
+    parts.push('<span class="meta-item"><span class="meta-label">Top channel:</span> <strong>' + escapeHtml(s.topChannel[0]) + '</strong> (' + fmtEur(s.topChannel[1]) + ')</span>');
+  }
+  if (s.trend !== null) {
+    const periodWord = mode === "week" ? "previous week" : "previous day";
+    if (!isFinite(s.trend)) {
+      parts.push('<span class="trend-pill up">▲ first ' + (mode === "week" ? "week" : "day") + ' with bookings</span>');
+    } else if (s.trend > 1) {
+      parts.push('<span class="trend-pill up">▲ +' + Math.round(s.trend) + '% vs ' + periodWord + '</span>');
+    } else if (s.trend < -1) {
+      parts.push('<span class="trend-pill down">▼ ' + Math.round(s.trend) + '% vs ' + periodWord + '</span>');
+    } else {
+      parts.push('<span class="trend-pill flat">— flat vs ' + periodWord + '</span>');
+    }
+  }
+  elMeta.innerHTML = parts.join("");
+}
+
+// ------- AI BRIEF (Claude Haiku via /api/brief Cloudflare function) -------
+function summarizeForBrief(arr) {
+  const byTour = {}, byChannel = {}, byCity = { Barcelona: 0, London: 0, Other: 0 };
+  let revenue = 0, pax = 0;
+  arr.forEach(b => {
+    byTour[b.tour] = (byTour[b.tour] || 0) + 1;
+    byChannel[b.channelNorm] = (byChannel[b.channelNorm] || 0) + 1;
+    byCity[b.city] = (byCity[b.city] || 0) + 1;
+    revenue += b.eur;
+    pax += b.pax;
+  });
+  return {
+    bookings: arr.length,
+    revenue_eur: Math.round(revenue),
+    pax,
+    by_tour: byTour,
+    by_channel: byChannel,
+    by_city: byCity
+  };
+}
+function extractClaudeText(result) {
+  if (!result) return "";
+  if (typeof result === "string") return result;
+  if (typeof result.text === "string") return result.text;
+  if (typeof result.response === "string") return result.response;
+  if (typeof result.completion === "string") return result.completion;
+  if (Array.isArray(result.content)) {
+    const block = result.content.find(b => b && (b.text || b.type === "text"));
+    if (block && block.text) return block.text;
+  }
+  if (typeof result.content === "string") return result.content;
+  return "";
+}
+async function generateBrief(bookings) {
+  const briefBody = document.getElementById("brief-body");
+  const briefMeta = document.getElementById("brief-meta");
+  if (!briefBody) return;
+  briefBody.innerHTML = '<div class="brief-loading">Reading the numbers</div>';
+  if (briefMeta) briefMeta.innerHTML = "";
+
+  const mostRecent = getMostRecentBookingDate(bookings) || new Date();
+  const thisWeekStart = startOfWeek(mostRecent);
+  const thisWeekEnd = new Date(thisWeekStart); thisWeekEnd.setDate(thisWeekEnd.getDate() + 7);
+  const lastWeekStart = new Date(thisWeekStart); lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+  const thisWeek = bookingsInRange(bookings, thisWeekStart, thisWeekEnd);
+  const lastWeek = bookingsInRange(bookings, lastWeekStart, thisWeekStart);
+  const data = {
+    week_starting: toDateKey(thisWeekStart),
+    week_label: fmtWeekRange(thisWeekStart),
+    this_week: summarizeForBrief(thisWeek),
+    last_week: summarizeForBrief(lastWeek)
+  };
+
+  const prompt = "You are analyzing booking data for Side Routes, a small-group walking-tour operator running tours in Barcelona and London. Channels include GetYourGuide, Viator, Tiqets, Klook, Airbnb, and Direct (their own websites). Based on the THIS_WEEK vs LAST_WEEK data below, write a brief operator-focused insight about what changed and what it means.\n\nTONE: confident, specific, like a smart colleague who just glanced at the numbers. NOT like a chatbot.\nFORMAT: plain prose only. NO bullets. NO markdown. NO headers. NO 'in summary'. NO 'overall'. NO 'great results'. NO 'exciting times'. NO closing offer to help.\nLENGTH: 2-3 sentences max. Tight.\nSPECIFICS: use real tour names, real channel names, real numbers. Avoid generic platitudes.\nCOMPARISON: if LAST_WEEK has zero bookings, just describe THIS_WEEK without comparison framing. If both weeks are similar in count, surface a different angle (a tour breakout, channel mix shift, city mix shift, anything notable).\n\nTHIS_WEEK: " + JSON.stringify(data.this_week) + "\nLAST_WEEK: " + JSON.stringify(data.last_week) + "\nWEEK_LABEL: " + data.week_label + "\n\nWrite the brief now. Output ONLY the brief text, nothing else.";
+
+  try {
+    const res = await fetch("/api/brief", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, data })
+    });
+    let payload;
+    try { payload = await res.json(); }
+    catch (e) { throw new Error("API returned non-JSON (HTTP " + res.status + ")"); }
+    if (res.status === 501) {
+      // Anthropic API key not configured — graceful fallback (no error)
+      briefBody.innerHTML = '<div class="brief-loading" style="font-style:normal">AI brief not configured. Add an ANTHROPIC_API_KEY env var to enable.</div>';
+      return;
+    }
+    if (!res.ok || payload.error) {
+      throw new Error(payload.error || ("HTTP " + res.status));
+    }
+    const text = (payload.text || "").trim();
+    if (!text) {
+      briefBody.innerHTML = '<div class="brief-loading" style="font-style:normal">Got an empty response from Claude. Try regenerating.</div>';
+      return;
+    }
+    briefBody.innerHTML = '<p>' + escapeHtml(text) + '</p>';
+    if (briefMeta) {
+      briefMeta.innerHTML =
+        '<span>Generated by Claude Haiku · ' + new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) +
+        '</span><button id="brief-refresh" class="reset-btn" style="font-size:11px;padding:4px 10px;">Regenerate</button>';
+      const btn = document.getElementById("brief-refresh");
+      if (btn) btn.addEventListener("click", () => generateBrief(bookings));
+    }
+  } catch (e) {
+    briefBody.innerHTML = '<div class="brief-loading" style="font-style:normal;color:#991B1B">Couldn\'t generate brief: ' + escapeHtml(e && e.message ? e.message : String(e)) + '</div>';
+  }
+}
+
+// ------- RENDER -------
+function render(allBookings) {
+  const timeRange = getFilter("timeRange", "all");
+  const city = getFilter("city", "all");
+  const channel = getFilter("channel", "all");
+  const filtered = applyFilters(allBookings, timeRange, city, channel);
+
+  // KPIs
+  const totalBookings = filtered.length;
+  const totalRevenue = filtered.reduce((s, b) => s + b.eur, 0);
+  const totalPax = filtered.reduce((s, b) => s + b.pax, 0);
+  const aov = totalBookings > 0 ? totalRevenue / totalBookings : 0;
+  const totalRevByCcy = {};
+  filtered.forEach(b => { totalRevByCcy[b.currency] = (totalRevByCcy[b.currency] || 0) + b.total; });
+
+  document.getElementById("kpi-bookings").textContent = fmtNum(totalBookings);
+  document.getElementById("kpi-revenue").textContent = fmtEur(totalRevenue);
+  document.getElementById("kpi-pax").textContent = fmtNum(totalPax);
+  document.getElementById("kpi-aov").textContent = fmtEur(aov);
+
+  // Aggregations
+  const granularity = getFilter("granularity", "day"); // day | week | month
+  const revByChannel = {};
+  const bookingsByTour = {};
+  const bookingsByPeriod = {};
+  const channelMix = {};
+  filtered.forEach(b => {
+    revByChannel[b.channelNorm] = (revByChannel[b.channelNorm] || 0) + b.eur;
+    bookingsByTour[b.tour] = (bookingsByTour[b.tour] || 0) + 1;
+    if (b.bookedAt) {
+      let k;
+      if (granularity === "week") {
+        k = toDateKey(startOfWeek(b.bookedAt));
+      } else if (granularity === "month") {
+        k = b.bookedAt.getFullYear() + "-" + String(b.bookedAt.getMonth() + 1).padStart(2, "0");
+      } else {
+        k = toDateKey(b.bookedAt);
+      }
+      bookingsByPeriod[k] = (bookingsByPeriod[k] || 0) + 1;
+    }
+    channelMix[b.channelNorm] = (channelMix[b.channelNorm] || 0) + 1;
+  });
+
+  if (filtered.length === 0) {
+    document.querySelectorAll(".chart-wrap").forEach(el => { el.innerHTML = '<div class="empty-state">No data for these filters.</div>'; });
+  } else {
+    ensureCanvas("chart-rev-channel");
+    ensureCanvas("chart-bookings-tour");
+    ensureCanvas("chart-time");
+    ensureCanvas("chart-channel-mix");
+    renderRevByChannel(revByChannel);
+    renderBookingsByTour(bookingsByTour);
+    renderBookingsOverTime(bookingsByPeriod, granularity);
+    renderChannelMix(channelMix);
+  }
+  renderBookingsTable(filtered);
+}
+
+function ensureCanvas(id) {
+  const wrap = document.getElementById(id + "-wrap");
+  if (!wrap.querySelector("canvas")) {
+    wrap.innerHTML = '<canvas id="' + id + '"></canvas>';
+  }
+}
+
+// ------- INIT -------
+function buildShell(timeRange, city, channel, channelOptions, snapshotMode, granularity) {
+  const root = document.getElementById("root");
+  root.innerHTML = `
+    <div class="brand-header">
+      <div class="brand-text">
+        <div class="brand-eyebrow">Side Routes</div>
+        <h1>Bookings Dashboard</h1>
+      </div>
+      <div class="brand-status">
+        <span class="status-pill"><span class="status-dot"></span>Live</span>
+        <span class="status-detail" id="status-detail"></span>
+      </div>
+    </div>
+    <div class="snapshot-card">
+      <div class="snapshot-head">
+        <div class="snapshot-title-group">
+          <div class="snapshot-title">Snapshot</div>
+          <div class="snapshot-period" id="snap-period">—</div>
+        </div>
+        <div class="segmented" id="snap-mode">
+          <button data-m="day"  class="${snapshotMode === "day"  ? "active" : ""}">Daily</button>
+          <button data-m="week" class="${snapshotMode === "week" ? "active" : ""}">Weekly</button>
+        </div>
+      </div>
+      <div class="snapshot-stats">
+        <div class="snap-stat"><div class="num" id="snap-bookings">—</div><div class="lbl">bookings</div></div>
+        <div class="snap-stat"><div class="num" id="snap-revenue">—</div><div class="lbl">revenue</div></div>
+        <div class="snap-stat"><div class="num" id="snap-pax">—</div><div class="lbl">pax</div></div>
+        <div class="snap-stat"><div class="num" id="snap-aov">—</div><div class="lbl">avg booking</div></div>
+      </div>
+      <div class="snapshot-meta" id="snap-meta"></div>
+    </div>
+    <div class="brief-card">
+      <div class="brief-head">
+        <div class="brief-title">
+          <span class="brief-badge">AI</span>
+          Weekly Brief
+        </div>
+      </div>
+      <div class="brief-body" id="brief-body">
+        <div class="brief-loading">Reading the numbers</div>
+      </div>
+      <div class="brief-meta" id="brief-meta"></div>
+    </div>
+    <div class="filters">
+      <div class="filter">
+        <label>Range</label>
+        <select id="f-time">
+          <option value="all" ${timeRange === "all" ? "selected" : ""}>All time</option>
+          <option value="7d"  ${timeRange === "7d"  ? "selected" : ""}>Last 7 days</option>
+          <option value="30d" ${timeRange === "30d" ? "selected" : ""}>Last 30 days</option>
+        </select>
+      </div>
+      <div class="filter">
+        <label>City</label>
+        <select id="f-city">
+          <option value="all"       ${city === "all"       ? "selected" : ""}>All cities</option>
+          <option value="Barcelona" ${city === "Barcelona" ? "selected" : ""}>Barcelona</option>
+          <option value="London"    ${city === "London"    ? "selected" : ""}>London</option>
+        </select>
+      </div>
+      <div class="filter">
+        <label>Channel</label>
+        <select id="f-channel">
+          <option value="all" ${channel === "all" ? "selected" : ""}>All channels</option>
+          ${channelOptions.map(c => `<option value="${escapeHtml(c)}" ${channel === c ? "selected" : ""}>${escapeHtml(c)}</option>`).join("")}
+        </select>
+      </div>
+      <button id="f-reset" class="reset-btn" type="button" title="Reset all filters to default">Reset</button>
+      <div class="loaded-count" id="loaded-count"></div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi" data-kind="bookings"><div class="label">Bookings</div><div class="value" id="kpi-bookings">—</div></div>
+      <div class="kpi" data-kind="revenue"><div class="label">Revenue (EUR)</div><div class="value" id="kpi-revenue">—</div></div>
+      <div class="kpi" data-kind="pax"><div class="label">Total pax</div><div class="value" id="kpi-pax">—</div></div>
+      <div class="kpi" data-kind="aov"><div class="label">Avg booking value</div><div class="value" id="kpi-aov">—</div></div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card"><h3>Revenue by Channel</h3><div class="chart-wrap" id="chart-rev-channel-wrap"><canvas id="chart-rev-channel"></canvas></div></div>
+      <div class="chart-card" data-accent="barcelona"><h3>Bookings by Tour</h3><div class="chart-wrap" id="chart-bookings-tour-wrap"><canvas id="chart-bookings-tour"></canvas></div></div>
+      <div class="chart-card" data-accent="london">
+        <div class="chart-head">
+          <h3>Bookings Over Time</h3>
+          <div class="segmented" id="granularity-toggle">
+            <button data-g="day"   class="${granularity === "day"   ? "active" : ""}">Day</button>
+            <button data-g="week"  class="${granularity === "week"  ? "active" : ""}">Week</button>
+            <button data-g="month" class="${granularity === "month" ? "active" : ""}">Month</button>
+          </div>
+        </div>
+        <div class="chart-wrap" id="chart-time-wrap"><canvas id="chart-time"></canvas></div>
+      </div>
+      <div class="chart-card" data-accent="teal"><h3>Channel Mix</h3><div class="chart-wrap" id="chart-channel-mix-wrap"><canvas id="chart-channel-mix"></canvas></div></div>
+    </div>
+    <div class="table-card">
+      <h3>Recent Bookings</h3>
+      <div class="table-wrap">
+        <table class="bookings-table">
+          <thead><tr>
+            <th>Booked</th><th>City</th><th>Tour</th><th>Customer</th><th>Channel</th><th class="num">Pax</th><th class="num">EUR</th>
+          </tr></thead>
+          <tbody id="bookings-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="footnote">
+      Live from your <em>Side Routes — Bookings Log</em> sheet via the Make pipeline.
+      Multi-currency bookings shown in EUR using approximate fixed FX (USD 0.92 · GBP 1.17 · CAD 0.68).
+      For accounting figures, refer to your booking platform reports.
+    </div>
+  `;
+}
+
+async function init() {
+  let bookings;
+  try {
+    bookings = await loadData();
+  } catch (err) {
+    document.getElementById("root").innerHTML = `<div class="error"><strong>Couldn't load bookings.</strong><br>${escapeHtml(err && err.message || String(err))}</div>`;
+    return;
+  }
+
+  // Build channel options dynamically
+  const channelSet = Array.from(new Set(bookings.map(b => b.channelNorm))).sort();
+
+  const timeRange = getFilter("timeRange", "all");
+  const city = getFilter("city", "all");
+  const channel = getFilter("channel", "all");
+  const granularity = getFilter("granularity", "day");
+  const snapshotMode = getFilter("snapshotMode", "day"); // "day" | "week"
+
+  buildShell(timeRange, city, channel, channelSet, snapshotMode, granularity);
+
+  document.getElementById("f-time").addEventListener("change", e => { setFilter("timeRange", e.target.value); render(bookings); });
+  document.getElementById("f-city").addEventListener("change", e => { setFilter("city", e.target.value); render(bookings); });
+  document.getElementById("f-channel").addEventListener("change", e => { setFilter("channel", e.target.value); render(bookings); });
+  document.getElementById("f-reset").addEventListener("click", () => {
+    setFilter("timeRange", "all"); setFilter("city", "all"); setFilter("channel", "all");
+    document.getElementById("f-time").value = "all";
+    document.getElementById("f-city").value = "all";
+    document.getElementById("f-channel").value = "all";
+    render(bookings);
+  });
+  document.querySelectorAll("#snap-mode button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const m = btn.getAttribute("data-m");
+      setFilter("snapshotMode", m);
+      document.querySelectorAll("#snap-mode button").forEach(b => b.classList.toggle("active", b === btn));
+      renderSnapshot(bookings, m);
+    });
+  });
+  document.querySelectorAll("#granularity-toggle button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const g = btn.getAttribute("data-g");
+      setFilter("granularity", g);
+      document.querySelectorAll("#granularity-toggle button").forEach(b => b.classList.toggle("active", b === btn));
+      render(bookings);
+    });
+  });
+
+  document.getElementById("status-detail").textContent = "Updated " + fmtTimeAgo(new Date());
+  document.getElementById("loaded-count").textContent = bookings.length + " bookings loaded from sheet";
+  renderSnapshot(bookings, snapshotMode);
+  render(bookings);
+  generateBrief(bookings); // async, doesn't block render
+}
+
+init();
+</script>
+</body>
+</html>

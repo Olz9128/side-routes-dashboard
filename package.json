@@ -1,0 +1,13 @@
+{
+  "name": "side-routes-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Live bookings dashboard for Side Routes — deployed on Cloudflare Pages, fetches from Google Sheets via service account.",
+  "scripts": {
+    "dev": "wrangler pages dev public",
+    "deploy": "wrangler pages deploy public"
+  },
+  "devDependencies": {
+    "wrangler": "^3.78.0"
+  }
+}

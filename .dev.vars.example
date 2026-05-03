@@ -1,0 +1,15 @@
+# Local-development environment variables. Copy this file to ".dev.vars"
+# and fill in real values. .dev.vars is gitignored — never commit secrets.
+#
+# When deployed to Cloudflare Pages, these same variables must be set in
+# the Pages project's "Environment variables" settings (encrypted).
+
+GOOGLE_SHEET_ID="12ewHhRFOS6PSZpjk0cg8dzLj05KujL0Ei2udGu8He04"
+GOOGLE_SHEET_RANGE="Sheet1!A:K"
+GOOGLE_CLIENT_EMAIL="dashboard-reader@YOUR-PROJECT.iam.gserviceaccount.com"
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQIB...replace with real key, keep \\n line escapes...\n-----END PRIVATE KEY-----\n"
+
+# Optional: Anthropic API key for the AI Weekly Brief feature.
+# Get from https://console.anthropic.com → Settings → API Keys.
+# If absent, the brief card shows "AI brief not configured" gracefully and the rest of the dashboard works fine.
+ANTHROPIC_API_KEY="sk-ant-..."
