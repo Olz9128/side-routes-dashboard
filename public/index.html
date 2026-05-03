@@ -980,7 +980,7 @@ function renderBookingsTable(rows) {
       <td>${fmtDate(b.bookedAt)}</td>
       <td><span class="badge ${cityClass}">${b.city}</span></td>
       <td class="tour-cell">${escapeHtml(shortTour(b.tour, 60))}</td>
-      <td>${escapeHtml(b.customer)}</td>
+      <td style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--text-muted)">${escapeHtml(b.bookingId)}</td>
       <td>${escapeHtml(b.channelNorm)}</td>
       <td class="num">${b.pax}</td>
       <td class="num">${fmtEur(b.eur)}</td>
@@ -1386,7 +1386,7 @@ function buildShell(timeRange, city, channel, channelOptions, snapshotMode, gran
       <div class="table-wrap">
         <table class="bookings-table">
           <thead><tr>
-            <th>Booked</th><th>City</th><th>Tour</th><th>Customer</th><th>Channel</th><th class="num">Pax</th><th class="num">EUR</th>
+            <th>Booked</th><th>City</th><th>Tour</th><th>Booking&nbsp;ID</th><th>Channel</th><th class="num">Pax</th><th class="num">EUR</th>
           </tr></thead>
           <tbody id="bookings-tbody"></tbody>
         </table>
