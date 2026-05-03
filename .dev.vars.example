@@ -4,10 +4,10 @@
 # When deployed to Cloudflare Pages, these same variables must be set in
 # the Pages project's "Environment variables" settings (encrypted).
 
-GOOGLE_SHEET_ID="12ewHhRFOS6PSZpjk0cg8dzLj05KujL0Ei2udGu8He04"
-GOOGLE_SHEET_RANGE="Sheet1!A:K"
-GOOGLE_CLIENT_EMAIL="dashboard-reader@YOUR-PROJECT.iam.gserviceaccount.com"
-GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQIB...replace with real key, keep \\n line escapes...\n-----END PRIVATE KEY-----\n"
+# Required: published CSV URL from Google Sheets.
+# Get it via: File → Share → Publish to web → CSV → Publish.
+# Looks like https://docs.google.com/spreadsheets/d/e/2PACX-.../pub?output=csv
+SHEET_CSV_URL="https://docs.google.com/spreadsheets/d/e/REPLACE_WITH_PUBLISHED_URL/pub?output=csv"
 
 # Optional: Anthropic API key for the AI Weekly Brief feature.
 # Get from https://console.anthropic.com → Settings → API Keys.

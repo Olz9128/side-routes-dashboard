@@ -1,56 +1,46 @@
 // Cloudflare Pages function: GET /api/bookings
-// Fetches the Side Routes Bookings Log sheet via the Google Sheets API
-// using a service account credential. Runs server-side so credentials are
-// never exposed to the browser. Cached briefly at the edge.
+// Fetches the Side Routes Bookings Log via Google Sheets' "Publish to web → CSV"
+// public URL. No service account needed. The CSV URL is unguessable but technically
+// public; Cloudflare Access in front of the dashboard provides the security gate.
 //
-// Required environment variables (set in Cloudflare Pages → Settings → Environment variables):
-//   GOOGLE_SHEET_ID      — the spreadsheet ID from the Sheet URL
-//   GOOGLE_SHEET_RANGE   — e.g. "Sheet1!A:K" (defaults to "A:K")
-//   GOOGLE_CLIENT_EMAIL  — from the service account JSON key
-//   GOOGLE_PRIVATE_KEY   — from the service account JSON key (with \n preserved)
+// Required environment variable (set in Cloudflare Pages → Settings → Environment variables):
+//   SHEET_CSV_URL  — the published-to-web CSV URL from Google Sheets
+//                    (looks like: https://docs.google.com/spreadsheets/d/e/2PACX-.../pub?output=csv)
 
 export async function onRequest(context) {
   try {
-    const env = context.env || {};
-    const sheetId = env.GOOGLE_SHEET_ID;
-    const range = env.GOOGLE_SHEET_RANGE || "A:K";
-    const clientEmail = env.GOOGLE_CLIENT_EMAIL;
-    // Cloudflare often stores the private key with literal \n sequences;
-    // restore real newlines.
-    const privateKey = (env.GOOGLE_PRIVATE_KEY || "").replace(/\\n/g, "\n");
-
-    if (!sheetId || !clientEmail || !privateKey) {
-      return jsonResponse({
-        error: "Missing config. Required env vars: GOOGLE_SHEET_ID, GOOGLE_CLIENT_EMAIL, GOOGLE_PRIVATE_KEY"
-      }, 500);
+    const csvUrl = context.env.SHEET_CSV_URL;
+    if (!csvUrl) {
+      return jsonResponse({ error: "SHEET_CSV_URL not configured" }, 500);
     }
 
-    const accessToken = await getGoogleAccessToken(clientEmail, privateKey);
-    const sheetsUrl =
-      "https://sheets.googleapis.com/v4/spreadsheets/" +
-      encodeURIComponent(sheetId) +
-      "/values/" + encodeURIComponent(range) +
-      "?valueRenderOption=UNFORMATTED_VALUE" +
-      "&dateTimeRenderOption=FORMATTED_STRING";
-
-    const res = await fetch(sheetsUrl, {
-      headers: { "Authorization": "Bearer " + accessToken }
+    const res = await fetch(csvUrl, {
+      // Bypass Cloudflare's edge cache so we always get fresh data;
+      // we still cache our own response below for 60s at the edge.
+      cf: { cacheEverything: false }
     });
     if (!res.ok) {
       const text = await res.text();
-      return jsonResponse({ error: "Sheets API error " + res.status + ": " + text }, 502);
+      return jsonResponse({
+        error: "CSV fetch failed (" + res.status + "). First 200 chars: " + text.substring(0, 200)
+      }, 502);
     }
-    const data = await res.json();
-    const values = data.values || [];
-    const headers = values[0] || [];
-    const rows = values.slice(1);
-
+    const csv = await res.text();
+    if (!csv || csv.length < 10) {
+      return jsonResponse({ error: "CSV response was empty. Check that the sheet is published to web." }, 502);
+    }
+    const { headers, rows } = parseCsv(csv);
+    if (headers.length === 0) {
+      return jsonResponse({ error: "Couldn't parse CSV (no headers found)." }, 502);
+    }
     return jsonResponse({
       headers,
       rows,
       rowCount: rows.length,
       fetchedAt: new Date().toISOString()
-    }, 200, { "Cache-Control": "public, max-age=60, s-maxage=60" });
+    }, 200, {
+      "Cache-Control": "public, max-age=60, s-maxage=60"
+    });
   } catch (e) {
     return jsonResponse({ error: (e && e.message) ? e.message : String(e) }, 500);
   }
@@ -66,67 +56,48 @@ function jsonResponse(body, status = 200, extraHeaders = {}) {
   });
 }
 
-// ---------- Google service-account JWT auth via Web Crypto ----------
-
-async function getGoogleAccessToken(clientEmail, privateKey) {
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: "RS256", typ: "JWT" };
-  const claim = {
-    iss: clientEmail,
-    scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
-    aud: "https://oauth2.googleapis.com/token",
-    exp: now + 3600,
-    iat: now
-  };
-
-  const enc = new TextEncoder();
-  const headerB64 = base64UrlEncodeBytes(enc.encode(JSON.stringify(header)));
-  const claimB64 = base64UrlEncodeBytes(enc.encode(JSON.stringify(claim)));
-  const unsigned = headerB64 + "." + claimB64;
-
-  const key = await importPkcs8Pem(privateKey);
-  const signature = await crypto.subtle.sign(
-    { name: "RSASSA-PKCS1-v1_5" },
-    key,
-    enc.encode(unsigned)
-  );
-  const signedJwt = unsigned + "." + base64UrlEncodeBytes(new Uint8Array(signature));
-
-  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: signedJwt
-    })
-  });
-  if (!tokenRes.ok) {
-    const text = await tokenRes.text();
-    throw new Error("Token exchange failed (" + tokenRes.status + "): " + text);
+// ---------- CSV parser ----------
+// Handles quoted fields with embedded commas, escaped quotes ("" inside quotes),
+// and CRLF / LF / CR line endings. Returns { headers: string[], rows: string[][] }.
+function parseCsv(text) {
+  const cells = [[]];
+  let cell = "";
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { cell += '"'; i++; }
+        else { inQuotes = false; }
+      } else {
+        cell += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ",") {
+        cells[cells.length - 1].push(cell);
+        cell = "";
+      } else if (ch === "\r" || ch === "\n") {
+        cells[cells.length - 1].push(cell);
+        cell = "";
+        if (ch === "\r" && text[i + 1] === "\n") i++;
+        // Skip empty trailing lines
+        if (i < text.length - 1) cells.push([]);
+      } else {
+        cell += ch;
+      }
+    }
   }
-  const tokenJson = await tokenRes.json();
-  if (!tokenJson.access_token) throw new Error("No access_token in token response");
-  return tokenJson.access_token;
-}
-
-async function importPkcs8Pem(pem) {
-  const cleaned = pem
-    .replace(/-----BEGIN [^-]+-----/g, "")
-    .replace(/-----END [^-]+-----/g, "")
-    .replace(/\s+/g, "");
-  if (!cleaned) throw new Error("Empty private key");
-  const der = Uint8Array.from(atob(cleaned), c => c.charCodeAt(0));
-  return await crypto.subtle.importKey(
-    "pkcs8",
-    der.buffer,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-}
-
-function base64UrlEncodeBytes(bytes) {
-  let str = "";
-  for (let i = 0; i < bytes.length; i++) str += String.fromCharCode(bytes[i]);
-  return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  // Final cell / row
+  if (cell.length > 0 || cells[cells.length - 1].length > 0) {
+    cells[cells.length - 1].push(cell);
+  }
+  // Filter out empty rows (single empty cell)
+  const nonEmpty = cells.filter(r => r.length > 1 || (r.length === 1 && r[0] !== ""));
+  if (nonEmpty.length === 0) return { headers: [], rows: [] };
+  return {
+    headers: nonEmpty[0],
+    rows: nonEmpty.slice(1)
+  };
 }
